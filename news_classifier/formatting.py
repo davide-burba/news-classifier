@@ -17,6 +17,8 @@ class StandardFormatter:
 
     path_raw_file: str = None
     path_raw_dir: str = "data/raw/"
+    sample_how_many: str = None
+    sample_replace: bool = False
     seed: int = 123
 
     def run(self):
@@ -32,37 +34,70 @@ class StandardFormatter:
             )[-1]
             self.path_raw_file = f"{self.path_raw_dir}/{last_run}/data.p"
 
-        # load
+        # load
         data = pd.read_pickle(self.path_raw_file)
-        # to dataframe
+        # to dataframe
         data = _convert_to_dataframe(data)
         # assign item_id column
-        data = data.reset_index(drop=True).reset_index().rename(columns={"index":"item_id"})
+        data = (
+            data.reset_index(drop=True)
+            .reset_index()
+            .rename(columns={"index": "item_id"})
+        )
         # split
         train, valid, test = _split_data(data, self.seed)
+        # sample
+        train = sample_data(
+            train, how_many=self.sample_how_many, replace=self.sample_replace
+        )
         return train, valid, test
 
 
 def _split_data(data, seed=123):
     """
     Split data in train (50%), valid (25%), and test (25%).
-    Stratify by "labels".
+    Stratify by "raw_labels".
     """
     # split in train valid test
     test_valid_size = len(data) // 4
     tmp, test = train_test_split(
-        data, test_size=test_valid_size, stratify=data["labels"], random_state=seed
+        data, test_size=test_valid_size, stratify=data["raw_labels"], random_state=seed
     )
     train, valid = train_test_split(
-        tmp, test_size=test_valid_size, stratify=tmp["labels"], random_state=seed
+        tmp, test_size=test_valid_size, stratify=tmp["raw_labels"], random_state=seed
     )
     return train, valid, test
 
 
 def _convert_to_dataframe(dataset):
     df = []
-    for category, l in dataset.items():
+    for raw_label, l in dataset.items():
         tmp = pd.DataFrame(l)
-        tmp["labels"] = category
+        tmp["raw_labels"] = raw_label
         df.append(tmp)
     return pd.concat(df)
+
+
+def sample_data(data, how_many=None, replace=True):
+    """
+    Resample data based on raw_labels.
+
+    Args:
+        data (pd.DataFrame): Dataframe with raw_labels column
+        how_many (Union[int,None]): How many samples per class to take. If None, return
+            unchanged data.
+        replace (bool): Sample with/without replacement. Ignored if how_many is None. If
+            False, take the min of the total number of samples and how_many.
+
+    Returns:
+        pd.DataFrame: A new dataframe with the resampled rows
+    """
+    if how_many is None:
+        return data.copy()
+
+    if replace:
+        sampler = lambda x: x.sample(n=how_many, replace=True)
+    else:
+        sampler = lambda x: x.sample(n=min(how_many, len(x)))
+
+    return data.groupby("raw_labels").apply(sampler).reset_index(drop=True)
