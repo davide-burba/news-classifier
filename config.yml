@@ -1,1 +1,12 @@
-{}
+scraper_params:
+  n_pages: 3
+
+formatter_params:
+  sample_how_many: null
+
+modeller_params:
+  num_train_epochs: 3
+  learning_rate: 0.0001
+
+analyzer_params:
+  dataset: test
