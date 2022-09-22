@@ -1,2 +1,4 @@
 from news_classifier.scraping import get_scraper
 from news_classifier.formatting import get_formatter
+from news_classifier.modelling import get_modeller
+from news_classifier.analysis import get_analyzer
