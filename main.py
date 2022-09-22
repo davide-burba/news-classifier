@@ -1,64 +1,75 @@
 import fire
 import mlflow
-import pandas as pd
 import pathlib
-import yaml
-
-from news_classifier import get_scraper, get_formatter
-from news_classifier.utils import build_output_dir
-
+from typing import Union
+from news_classifier.utils import build_output_dir, load_config
+from news_classifier.tasks import (
+    ScrapeDataTask,
+    FormatDataTask,
+    TrainTask,
+    EvaluateTask,
+)
 
 ROOT = f"{pathlib.Path(__file__).parent.resolve()}/"
+
+TASK_MAP = {
+    "scrape_data": ScrapeDataTask,
+    "format_data": FormatDataTask,
+    "train": TrainTask,
+    "evaluate": EvaluateTask,
+}
+
+DEFAULT_OUTPUT_DIR = {
+    "scrape_data": f"{ROOT}/data/raw",
+    "format_data": f"{ROOT}/data/formatted",
+    "train": f"{ROOT}/experiments/train",
+    "evaluate": f"{ROOT}/experiments/evaluate",
+}
+
 DEFAULT_CONFIG = {
     "scraper_class": "FrontiersScraper",
     "scraper_params": {},
     "formatter_class": "StandardFormatter",
-    "formatter_params": {},
+    "formatter_params": {"path_raw_dir": DEFAULT_OUTPUT_DIR["scrape_data"]},
+    "modeller_class": "BaseTextClassifier",
+    "modeller_params": {"path_data_dir": DEFAULT_OUTPUT_DIR["format_data"]},
+    "analyzer_class": "ClassificationAnalyzer",
+    "analyzer_params": {"path_model": DEFAULT_OUTPUT_DIR["train"]},
 }
 
 
-def load_config(config_path=None):
-    config = DEFAULT_CONFIG.copy()
-    if config_path is not None:
-        with open(config_path, "r") as f:
-            config.update(yaml.safe_load(f))
-    return config
+def main(
+    task_name: str,
+    config_path: str = f"{ROOT}/config.yml",
+    output_dir: Union[str, None] = None,
+    run_name: Union[str, None] = None,
+):
+    f"""
+    Run a task.
 
+    Args:
+        task_name (str): The name of the task. Available tasks are: {list(TASK_MAP.keys())}
+        config_path (str): Path to the yaml config file
+        output_dir (str): Path to the directory where the output of the task will be stored
+        run_name (Union[None,str]): Optional run name for mlflow
+    """
+    if task_name not in TASK_MAP:
+        raise ValueError(f"Unknown task {task_name}")
 
-class Main:
-    def scrape_data(
-        self, config_path=f"{ROOT}/config.yml", output_dir=f"{ROOT}/data/raw/"
-    ):
-        mlflow.set_experiment("scrape_data")
+    if output_dir is None:
+        output_dir = DEFAULT_OUTPUT_DIR[task_name]
+    output_dir = build_output_dir(output_dir)
+    print(f"output will be saved at {output_dir}")
+
+    mlflow.set_experiment(task_name)
+    with mlflow.start_run(run_name=run_name):
         mlflow.log_artifact(config_path)
+        config = load_config(config_path, DEFAULT_CONFIG)
 
-        config = load_config(config_path)
-        scraper = get_scraper(config["scraper_class"], config["scraper_params"])
-        data = scraper.run()
-        output_dir = build_output_dir(output_dir)
-
-        mlflow.log_param("output_dir", output_dir)
-        pd.to_pickle(data, f"{output_dir}/data.p")
-        print(f"output saved at {output_dir}")
-
-    def format_data(
-        self, config_path=f"{ROOT}/config.yml", output_dir=f"{ROOT}/data/formatted/"
-    ):
-        mlflow.set_experiment("format_data")
-        mlflow.log_artifact(config_path)
-
-        config = load_config(config_path)
-        formatter = get_formatter(config["formatter_class"], config["formatter_params"])
-        train, valid, test = formatter.run()
-
-        output_dir = build_output_dir(output_dir)
-        mlflow.log_param("output_dir", output_dir)
-        pd.to_pickle(train, f"{output_dir}/train.p")
-        pd.to_pickle(valid, f"{output_dir}/valid.p")
-        pd.to_pickle(test, f"{output_dir}/test.p")
-        print(f"output saved at {output_dir}")
+        task = TASK_MAP[task_name](config, output_dir)
+        task.run()
 
 
 if __name__ == "__main__":
     mlflow.set_tracking_uri(f"sqlite:///{ROOT}/mlruns.db")
-    fire.Fire(Main)
+    fire.Fire(main)
