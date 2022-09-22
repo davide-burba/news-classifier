@@ -18,6 +18,8 @@ scikit-learn = "^1.1.2"
 seaborn = "^0.11.2"
 plotly = "^5.10.0"
 fire = "^0.4.0"
+evaluate = "^0.2.2"
+nbformat = "^5.4.0"
 
 [tool.poetry.dev-dependencies]
 
