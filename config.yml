@@ -1,12 +1,17 @@
 scraper_params:
-  n_pages: 3
+  n_pages: 6
+
+cleaner_params:
+  words_per_abstract: 10
 
 formatter_params:
+  merge_columns: ["article_title"]
   sample_how_many: null
 
 modeller_params:
-  num_train_epochs: 3
+  num_train_epochs: 5
   learning_rate: 0.0001
+  feature_key: article_title_abstract
 
 analyzer_params:
   dataset: test
