@@ -5,6 +5,7 @@ from typing import Union
 from news_classifier.utils import build_output_dir, load_config
 from news_classifier.tasks import (
     ScrapeDataTask,
+    CleanDataTask,
     FormatDataTask,
     TrainTask,
     EvaluateTask,
@@ -14,6 +15,7 @@ ROOT = f"{pathlib.Path(__file__).parent.resolve()}/"
 
 TASK_MAP = {
     "scrape_data": ScrapeDataTask,
+    "clean_data": CleanDataTask,
     "format_data": FormatDataTask,
     "train": TrainTask,
     "evaluate": EvaluateTask,
@@ -21,6 +23,7 @@ TASK_MAP = {
 
 DEFAULT_OUTPUT_DIR = {
     "scrape_data": f"{ROOT}/data/raw",
+    "clean_data": f"{ROOT}/data/cleaned",
     "format_data": f"{ROOT}/data/formatted",
     "train": f"{ROOT}/experiments/train",
     "evaluate": f"{ROOT}/experiments/evaluate",
@@ -29,8 +32,9 @@ DEFAULT_OUTPUT_DIR = {
 DEFAULT_CONFIG = {
     "scraper_class": "FrontiersScraper",
     "scraper_params": {},
+    "cleaner_params": {"path_raw_dir": DEFAULT_OUTPUT_DIR["scrape_data"]},
     "formatter_class": "StandardFormatter",
-    "formatter_params": {"path_raw_dir": DEFAULT_OUTPUT_DIR["scrape_data"]},
+    "formatter_params": {"path_raw_dir": DEFAULT_OUTPUT_DIR["clean_data"]},
     "modeller_class": "BaseTextClassifier",
     "modeller_params": {"path_data_dir": DEFAULT_OUTPUT_DIR["format_data"]},
     "analyzer_class": "ClassificationAnalyzer",

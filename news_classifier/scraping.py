@@ -60,11 +60,16 @@ class FrontiersScraper:
             soup = BeautifulSoup(response.text, "html.parser")
             for div in soup.find_all("div", class_="mh-excerpt"):
                 anchor = list(div.children)[1]
+                url = anchor.get("href")
+                title = anchor.get("title")
+                abstract = self.get_article_abstract(url)
+                
                 data.append(
                     {
-                        "article_url": anchor.get("href"),
-                        "article_title": anchor.get("title"),
+                        "article_url": url,
+                        "article_title": title,
                         "page": page,
+                        "abstract": abstract,
                     }
                 )
 
@@ -72,3 +77,20 @@ class FrontiersScraper:
             time.sleep(0.5)
 
         return data
+
+    def get_article_abstract(self, url):
+        response = requests.get(url)
+        if not response.ok:
+            print(f"Failed request for {url}, returning an empty string.")
+        soup = BeautifulSoup(response.text, "html.parser")
+        try:
+            abstract = (
+                soup.find_all("div", class_="entry clearfix")[0]
+                .find_all("strong")[0]
+                .contents[0]
+                .text
+            )
+        except:
+            print(f"Failed parsing abstract for {url}, returning an empty string.")
+            abstract = ""
+        return abstract
