@@ -1,6 +1,7 @@
 import os
-import pandas as pd
 import sys
+import pandas as pd
+from typing import Union, List
 from dataclasses import dataclass
 from sklearn.model_selection import train_test_split
 
@@ -19,6 +20,8 @@ class StandardFormatter:
     path_raw_dir: str = "data/raw/"
     sample_how_many: str = None
     sample_replace: bool = False
+    merge_columns: Union[List[str], None] = None
+    merge_sep: str = "\n"
     seed: int = 123
 
     def run(self):
@@ -44,6 +47,9 @@ class StandardFormatter:
             .reset_index()
             .rename(columns={"index": "item_id"})
         )
+        # merge columns
+        if self.merge_columns:
+            data = _merge_columns(data, self.merge_columns, self.merge_sep)
         # split
         train, valid, test = _split_data(data, self.seed)
         # sample
@@ -101,3 +107,13 @@ def sample_data(data, how_many=None, replace=True):
         sampler = lambda x: x.sample(n=min(how_many, len(x)))
 
     return data.groupby("raw_labels").apply(sampler).reset_index(drop=True)
+
+
+def _merge_columns(data, merge_columns, merge_sep):
+    data = data.copy()
+    tmp = data[merge_columns[0]].copy()
+    for k in merge_columns[1:]:
+        tmp = tmp + merge_sep + data[k]
+    new_col = "_".join(merge_columns)
+    data[new_col] = tmp
+    return data
