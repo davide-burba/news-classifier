@@ -68,6 +68,7 @@ def main(
     mlflow.set_experiment(task_name)
     with mlflow.start_run(run_name=run_name):
         mlflow.log_artifact(config_path)
+        mlflow.log_param("output_directory",output_dir)
         config = load_config(config_path, DEFAULT_CONFIG)
 
         task = TASK_MAP[task_name](config, output_dir)

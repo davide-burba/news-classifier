@@ -1,15 +1,29 @@
 scraper_params:
-  n_pages: 6
+  n_pages: 5
 
 cleaner_params:
   words_per_abstract: 10
 
 formatter_params:
-  merge_columns: ["article_title"]
+  merge_columns: ["article_title", "abstract"]
+  merge_categories:
+    HEALTH:
+      - health
+      - neuroscience
+      - psychology
+    OTHER:
+      - robotics-and-ai
+      - engineering
+      - environment
+      - sustainability
+      - climate-action
+      - life-science
+      - humanities
+      - open-science-policy
   sample_how_many: null
 
 modeller_params:
-  num_train_epochs: 5
+  num_train_epochs: 3
   learning_rate: 0.0001
   feature_key: article_title_abstract
 

@@ -83,6 +83,7 @@ class BaseTextClassifier(BaseModel):
             self.checkpoint,
             num_labels=self.labels_tokenizer.num_labels,
             cache_dir=self.cache_dir,
+            ignore_mismatched_sizes=True,
         )
 
         # train
