@@ -1,7 +1,7 @@
 import os
 import sys
 import pandas as pd
-from typing import Union, List
+from typing import Union, List, Dict
 from dataclasses import dataclass
 from sklearn.model_selection import train_test_split
 
@@ -21,6 +21,7 @@ class StandardFormatter:
     sample_how_many: str = None
     sample_replace: bool = False
     merge_columns: Union[List[str], None] = None
+    merge_categories: Union[Dict[str, List[str]], None] = None
     merge_sep: str = "\n"
     seed: int = 123
 
@@ -41,6 +42,9 @@ class StandardFormatter:
         data = pd.read_pickle(self.path_raw_file)
         # to dataframe
         data = _convert_to_dataframe(data)
+        # merge categories
+        if self.merge_categories is not None:
+            data = _merge_categories(data, self.merge_categories)
         # assign item_id column
         data = (
             data.reset_index(drop=True)
@@ -48,7 +52,7 @@ class StandardFormatter:
             .rename(columns={"index": "item_id"})
         )
         # merge columns
-        if self.merge_columns:
+        if self.merge_columns is not None:
             data = _merge_columns(data, self.merge_columns, self.merge_sep)
         # split
         train, valid, test = _split_data(data, self.seed)
@@ -116,4 +120,15 @@ def _merge_columns(data, merge_columns, merge_sep):
         tmp = tmp + merge_sep + data[k]
     new_col = "_".join(merge_columns)
     data[new_col] = tmp
+    return data
+
+
+def _merge_categories(data, merge_categories):
+    data = data.copy()
+    data["old_raw_labels"] = data["raw_labels"].copy()
+
+    for macro_cat, categories in merge_categories.items():
+        mask = data.raw_labels.isin(categories)
+        data.loc[mask, "raw_labels"] = macro_cat
+
     return data
