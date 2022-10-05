@@ -1,8 +1,10 @@
 import sys
 import os
-import pandas as pd
 from dataclasses import dataclass
+from typing import Union, Dict, Any
+import pandas as pd
 import mlflow
+
 from news_classifier.evaluation import (
     compute_metrics,
     compute_metrics_by_class,
@@ -11,7 +13,21 @@ from news_classifier.evaluation import (
 )
 
 
-def get_analyzer(analyzer_class="ClassificationAnalyzer", analyzer_params={}):
+def get_analyzer(
+    analyzer_class: str = "ClassificationAnalyzer",
+    analyzer_params: Union[Dict, None] = None,
+) -> Any:
+    """Factory for analyzer objects.
+
+    Args:
+        analyzer_class: The analyzer class.
+        analyzer_params: The params for the analyzer class.
+
+    Returns:
+        Analyzer object.
+    """
+    if analyzer_params is None:
+        analyzer_params = {}
     return getattr(sys.modules[__name__], analyzer_class)(**analyzer_params)
 
 
@@ -47,7 +63,14 @@ class BaseAnalyzer:
 
 @dataclass
 class ClassificationAnalyzer(BaseAnalyzer):
-    def run(self, output_dir):
+    """Perform analysis on classification tasks."""
+
+    def run(self, output_dir: str):
+        """Run analysis, save results in output_dir and mlflow.
+
+        Args:
+            output_dir: The folder where to store artifacts.
+        """
         model, data = self.load_model_data()
         predictions = model.predict(data)
 
@@ -68,12 +91,16 @@ class ClassificationAnalyzer(BaseAnalyzer):
 
         fig_path = f"{output_dir}/metrics_by_class.html"
         metrics_by_class = compute_metrics_by_class(y_true, y_pred, labels)
-        fig = get_fig_heatmap(pd.DataFrame(metrics_by_class).round(3))
+        fig = get_fig_heatmap(
+            pd.DataFrame(metrics_by_class).round(3), x_text="Metric", y_text="Category"
+        )
         fig.write_html(fig_path)
         mlflow.log_artifact(fig_path)
 
         fig_path = f"{output_dir}/confusion_matrix.html"
         confusion_matrix = build_confusion_matrix(y_true, y_pred, labels)
-        fig = get_fig_heatmap(confusion_matrix)
+        fig = get_fig_heatmap(
+            confusion_matrix, x_text="Predicted value", y_text="Real value"
+        )
         fig.write_html(fig_path)
         mlflow.log_artifact(fig_path)

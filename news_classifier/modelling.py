@@ -2,8 +2,7 @@ from dataclasses import dataclass
 import pandas as pd
 import sys
 import os
-import yaml
-from typing import Dict
+from typing import Dict, Union, Any
 from transformers import (
     AutoTokenizer,
     AutoModelForSequenceClassification,
@@ -17,33 +16,47 @@ from datasets import Dataset
 from news_classifier.evaluation import compute_metrics_huggingface
 
 
-def get_modeller(modeller_class="BaseTextClassifier", modeller_params={}):
+def get_modeller(
+    modeller_class: str = "TextClassifier",
+    modeller_params: Union[Dict, None] = None,
+) -> Any:
+    """Factory for modeller objects.
+
+    Args:
+        modeller_class: The name of the modeller class.
+        modeller_params: The params for the modeller class.
+
+    Returns:
+        The modeller object.
+    """
+    if modeller_params is None:
+        modeller_params = {}
     return getattr(sys.modules[__name__], modeller_class)(**modeller_params)
 
 
 @dataclass
-class BaseModel:
+class TextClassifier:
+    """Text classifier model.
+
+    Args:
+        path_run_dir: Path to the directory with the data (`train.p`,`valid.p`,`test.p`).
+            Data must have a `raw_label` column.
+        path_data_dir: Path to the folder with runs for formatted data. Ignored if
+            path_run_dir is not None. If path_run_dir is None, take the last run in
+            path_data_dir.
+        checkpoint: Checkpoint for the huggingface model.
+        cache_dir: Cache folder.
+        feature_key: Name of the column to be used as input feature.
+        truncation: Set to True to truncate feature tokens to a max length.
+        max_length: Max length for truncation.
+        logging_steps: How often to log validation metrics.
+        num_train_epochs: Number of training epochs
+        learning_rate: Learning rate for training.
+        dropout: Dropout level.
+    """
+
     path_run_dir: str = None
     path_data_dir: str = "data/formatted"
-    stats: Dict = None
-
-    def load_data(self, data="train"):
-        assert data in {"train", "valid", "test"}
-        if self.path_run_dir is None:
-            last_run = sorted(
-                [v for v in os.listdir(self.path_data_dir) if "run_" in v]
-            )[-1]
-            self.path_run_dir = f"{self.path_data_dir}/{last_run}/"
-
-        return pd.read_pickle(f"{self.path_run_dir}/{data}.p")
-
-    def save_stats(self, path):
-        with open(path, "w") as f:
-            yaml.safe_dump(self.stats, f)
-
-
-@dataclass
-class BaseTextClassifier(BaseModel):
     checkpoint: str = "distilbert-base-cased"
     cache_dir: str = "./cache"
     feature_key: str = "article_title"
@@ -52,8 +65,10 @@ class BaseTextClassifier(BaseModel):
     logging_steps: int = 10
     num_train_epochs: int = 3
     learning_rate: float = 5 * 10e-5
+    dropout: float = 0.1
 
     def fit(self):
+        """Train the model."""
         # load data
         train = self.load_data("train")
         valid = self.load_data("valid")
@@ -84,6 +99,7 @@ class BaseTextClassifier(BaseModel):
             num_labels=self.labels_tokenizer.num_labels,
             cache_dir=self.cache_dir,
             ignore_mismatched_sizes=True,
+            dropout=self.dropout,
         )
 
         # train
@@ -116,7 +132,16 @@ class BaseTextClassifier(BaseModel):
             return_all_scores=True,
         )
 
-    def predict(self, dataset):
+    def predict(self, dataset: Union[pd.DataFrame, Dataset]) -> pd.DataFrame:
+        """Make predictions.
+
+        Args:
+            dataset: data with feature_key.
+
+        Returns:
+            The prediction score for each class, plus two columns with the higest score
+            and the corresponding class (predicted_scores and predicted_labels).
+        """
         # format input
         if isinstance(dataset, pd.DataFrame):
             dataset = Dataset.from_pandas(dataset)
@@ -143,8 +168,28 @@ class BaseTextClassifier(BaseModel):
 
         return preds
 
+    def load_data(self, data="train"):
+        """Load data from a folder.
+
+        Args:
+            data: Must be one of "train","valid","test".
+
+        Returns:
+            The loaded data.
+        """
+        assert data in {"train", "valid", "test"}
+        if self.path_run_dir is None:
+            last_run = sorted(
+                [v for v in os.listdir(self.path_data_dir) if "run_" in v]
+            )[-1]
+            self.path_run_dir = f"{self.path_data_dir}/{last_run}/"
+
+        return pd.read_pickle(f"{self.path_run_dir}/{data}.p")
+
 
 class FeaturesTokenizer:
+    """Tokenizer for features."""
+
     def __init__(
         self,
         checkpoint,
@@ -167,6 +212,11 @@ class FeaturesTokenizer:
 
 
 class LabelsTokenizer:
+    """Tokenizer for labels.
+
+    This class is responsable to convert raw_labels to integers (and viceversa).
+    """
+
     def __init__(self, labels):
         labels = sorted(set(labels))
         self.labels_dict_inverse = {idx: value for idx, value in enumerate(labels)}

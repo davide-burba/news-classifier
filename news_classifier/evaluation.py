@@ -1,29 +1,25 @@
 import evaluate
 import pandas as pd
 import numpy as np
+from typing import Dict, List
 from sklearn import metrics
 import plotly.figure_factory as ff
+import plotly.graph_objects as go
 
 
-def compute_metrics_huggingface(eval_pred):
-    logits, labels = eval_pred
-    predictions = np.argmax(logits, axis=-1)
+def compute_metrics(
+    y_true: List[float], y_pred: List[float], labels: List[str]
+) -> Dict[str, float]:
+    """Compute classification metrics (accuracy,f1,precision,recall).
 
-    metrics = {
-        "accuracy": {"name": "accuracy", "args": {}},
-        "f1_macro": {"name": "f1", "args": {"average": "macro"}},
-        "precision_macro": {"name": "precision", "args": {"average": "macro"}},
-    }
+    Args:
+        y_true: True labels.
+        y_pred: Predictions.
+        labels: Unique category names.
 
-    return {
-        metric: evaluate.load(d["name"]).compute(
-            predictions=predictions, references=labels, **d["args"]
-        )[d["name"]]
-        for metric, d in metrics.items()
-    }
-
-
-def compute_metrics(y_true, y_pred, labels):
+    Returns:
+        The computed metrics.
+    """
     return {
         "accuracy": metrics.accuracy_score(y_true, y_pred),
         "f1_macro": metrics.f1_score(
@@ -38,7 +34,19 @@ def compute_metrics(y_true, y_pred, labels):
     }
 
 
-def compute_metrics_by_class(y_true, y_pred, labels):
+def compute_metrics_by_class(
+    y_true: List[float], y_pred: List[float], labels: List[str]
+) -> Dict[str, Dict[str, float]]:
+    """Compute classification metrics by class (f1,precision,recall).
+
+    Args:
+        y_true: True labels.
+        y_pred: Predictions.
+        labels: Unique category names.
+
+    Returns:
+        The computed metrics by class.
+    """
     return {
         "f1_by_class": {
             c: v
@@ -70,16 +78,64 @@ def compute_metrics_by_class(y_true, y_pred, labels):
     }
 
 
-def build_confusion_matrix(y_true, y_pred, labels):
+def compute_metrics_huggingface(eval_pred):
+    """Compute metrics in huggingface environment.
+
+    The following metrics are computed: accuracy, f1_macro, precision_macro.
+
+    Args:
+        eval_pred: The predictions for the validation set.
+
+    Returns:
+        A dictionary mapping metric name to their values.
+    """
+    logits, labels = eval_pred
+    predictions = np.argmax(logits, axis=-1)
+
+    metrics = {
+        "accuracy": {"name": "accuracy", "args": {}},
+        "f1_macro": {"name": "f1", "args": {"average": "macro"}},
+        "precision_macro": {"name": "precision", "args": {"average": "macro"}},
+    }
+
+    return {
+        metric: evaluate.load(d["name"]).compute(
+            predictions=predictions, references=labels, **d["args"]
+        )[d["name"]]
+        for metric, d in metrics.items()
+    }
+
+
+def build_confusion_matrix(
+    y_true: List[float], y_pred: List[float], labels: List[str]
+) -> pd.DataFrame:
+    """Compute the confusion matrix.
+
+    Args:
+        y_true: True labels.
+        y_pred: Predictions.
+        labels: Unique category names.
+
+    Returns:
+        The confusion matrix.
+    """
     confusion_matrix = metrics.confusion_matrix(y_true, y_pred, labels=labels)
     return pd.DataFrame(confusion_matrix, index=labels, columns=labels)
 
 
-def get_fig_heatmap(confusion_matrix):
-    z = confusion_matrix.values
+def get_fig_heatmap(heatmap: pd.DataFrame,x_text="",y_text="") -> go.Figure:
+    """Build a heatmap figure.
 
-    x = list(confusion_matrix.columns)
-    y = list(confusion_matrix.index)
+    Args:
+        heatmap: The matrix.
+
+    Returns:
+        A figure with the matrix displayed as a heatmap.
+    """
+    z = heatmap.values
+
+    x = list(heatmap.columns)
+    y = list(heatmap.index)
 
     # change each element of z to type string for annotations
     z_text = [[str(y) for y in x] for x in z]
@@ -96,7 +152,7 @@ def get_fig_heatmap(confusion_matrix):
             x=0.5,
             y=-0.15,
             showarrow=False,
-            text="Predicted value",
+            text=x_text,
             xref="paper",
             yref="paper",
         )
@@ -109,7 +165,7 @@ def get_fig_heatmap(confusion_matrix):
             x=-0.35,
             y=0.5,
             showarrow=False,
-            text="Real value",
+            text=y_text,
             textangle=-90,
             xref="paper",
             yref="paper",
