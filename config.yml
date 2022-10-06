@@ -23,8 +23,9 @@ formatter_params:
   sample_how_many: null
 
 modeller_params:
-  num_train_epochs: 3
-  learning_rate: 0.0001
+  num_train_epochs: 10
+  learning_rate: 0.00001
+  dropout: 0.2
   feature_key: article_title_abstract
 
 analyzer_params:

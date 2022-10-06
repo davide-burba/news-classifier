@@ -1,8 +1,9 @@
-import requests
-from bs4 import BeautifulSoup
 import time
 import sys
+from typing import Union, Dict, Any, List
 from dataclasses import dataclass
+import requests
+from bs4 import BeautifulSoup
 
 
 FRONTIERS_BLOG_CATEGORIES = [
@@ -20,21 +21,29 @@ FRONTIERS_BLOG_CATEGORIES = [
 ]
 
 
-def get_scraper(scraper_class="FrontiersScraper", scraper_params={}):
+def get_scraper(
+    scraper_class: str = "FrontiersScraper", scraper_params: Union[Dict, None] = None
+) -> Any:
+    if scraper_params is None:
+        scraper_params = {}
     return getattr(sys.modules[__name__], scraper_class)(**scraper_params)
 
 
 @dataclass
 class FrontiersScraper:
-    """Scrape news data from Frontiers Website"""
+    """Scrape news data from Frontiers Website (https://blog.frontiersin.org).
+
+    Args:
+        n_pages: The number of pages to scrape. Each page contains 50 articles.
+    """
 
     n_pages: int = 3
 
-    def run(self):
-        """Retrieve blog articles (titles and urls) from frontiers blog by category.
+    def run(self) -> Dict[str, List[Dict[str, Any]]]:
+        """Retrieve blog articles (titles, urls, abstracts) from frontiers blog page.
 
         Returns:
-            Dict[str,List[Dict[str,Any]]]
+            The scraped data by category.
         """
         data = {}
         for category in FRONTIERS_BLOG_CATEGORIES:
@@ -44,7 +53,9 @@ class FrontiersScraper:
             )
         return data
 
-    def _retrieve_blog_articles(self, category="life-science", n_pages=2):
+    def _retrieve_blog_articles(
+        self, category: str = "life-science", n_pages: int = 2
+    ) -> List[Dict[str, Any]]:
         assert category in FRONTIERS_BLOG_CATEGORIES
 
         data = []
@@ -52,18 +63,20 @@ class FrontiersScraper:
             print(f"page {page}/{n_pages}")
             url = f"https://blog.frontiersin.org/category/{category}/page/{page}"
 
+            # get page
             response = requests.get(url)
             if not response.ok:
                 print(response.reason)
                 continue
 
+            # parse page
             soup = BeautifulSoup(response.text, "html.parser")
             for div in soup.find_all("div", class_="mh-excerpt"):
                 anchor = list(div.children)[1]
                 url = anchor.get("href")
                 title = anchor.get("title")
                 abstract = self.get_article_abstract(url)
-                
+
                 data.append(
                     {
                         "article_url": url,
@@ -79,6 +92,14 @@ class FrontiersScraper:
         return data
 
     def get_article_abstract(self, url):
+        """Download Frontiers article abstract from url.
+
+        Args:
+            url: The url to the article.
+
+        Returns:
+            The article abstract (first bold paragraph).
+        """
         response = requests.get(url)
         if not response.ok:
             print(f"Failed request for {url}, returning an empty string.")

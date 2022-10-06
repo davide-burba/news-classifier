@@ -1,36 +1,72 @@
 import os
 import sys
 import pandas as pd
-from typing import Union, List, Dict
+from typing import Union, List, Dict, Any, Tuple
 from dataclasses import dataclass
 from sklearn.model_selection import train_test_split
 
 
-def get_formatter(formatter_class="StandardFormatter", formatter_params={}):
+def get_formatter(
+    formatter_class: str = "StandardFormatter",
+    formatter_params: Union[Dict, None] = None,
+) -> Any:
+    """Factory for formatter objects.
+
+    Args:
+        formatter_class: The name of the formatter class.
+        formatter_params: The params for the formatter class.
+
+    Returns:
+        Formatter object.
+    """
+    if formatter_params is None:
+        formatter_params = {}
     return getattr(sys.modules[__name__], formatter_class)(**formatter_params)
 
 
 @dataclass
 class StandardFormatter:
-    """
-    If path_raw_file is None, take the last run in path_raw_dir.
+    """Format the data.
+
+    The following actions are done:
+    - load data
+    - merge categories
+    - merge columns
+    - split data in train/valid/test
+    - sample training set
+
+    Check the args for details.
+
+    Args:
+        path_raw_file: Path to the raw data pickle file. Raw data is expected to be a dict
+            mapping categories to a list of dict with different properties.
+        path_raw_dir: Path to the raw data dir. Ignored if path_raw_file is not None.
+            If path_raw_file is None, take the last run in path_raw_dir.
+        sample_how_many: How many samples to take per class. Do not perform sampling if
+            set to None.
+        sample_replace: If True, sample with replacement.
+        merge_columns: List of string columns to be "merged" to create a new column.
+            Ignored if None.
+        merge_categories: Dict mapping macro-categories to list of categories. Ignored
+            if None.
+        merge_sep: separator to use to merge columns.
+        seed: random seed to split train/valid/test sets.
     """
 
-    path_raw_file: str = None
-    path_raw_dir: str = "data/raw/"
-    sample_how_many: str = None
+    path_raw_file: Union[str, None] = None
+    path_raw_dir: Union[str, None] = "data/raw/"
+    sample_how_many: Union[int, None] = None
     sample_replace: bool = False
     merge_columns: Union[List[str], None] = None
     merge_categories: Union[Dict[str, List[str]], None] = None
     merge_sep: str = "\n"
     seed: int = 123
 
-    def run(self):
-        """
-        Load data, convert to dataframe, add item_id, split in train/valid/test.
+    def run(self) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+        """Run the data formatting.
 
-        Raw data is expected to be a dict mapping categories to a list of dict with
-        different properties.
+        Returns:
+            The data formatted as train/valid/test
         """
         if not self.path_raw_file:
             last_run = sorted(
@@ -63,10 +99,17 @@ class StandardFormatter:
         return train, valid, test
 
 
-def _split_data(data, seed=123):
-    """
-    Split data in train (50%), valid (25%), and test (25%).
-    Stratify by "raw_labels".
+def _split_data(
+    data: pd.DataFrame, seed: int = 123
+) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Split data in train (50%), valid (25%), and test (25%), stratify by "raw_labels".
+
+    Args:
+        data: The dataset.
+        seed: Random seed used for split.
+
+    Returns:
+        The train/valid/test sets.
     """
     # split in train valid test
     test_valid_size = len(data) // 4
@@ -79,28 +122,19 @@ def _split_data(data, seed=123):
     return train, valid, test
 
 
-def _convert_to_dataframe(dataset):
-    df = []
-    for raw_label, l in dataset.items():
-        tmp = pd.DataFrame(l)
-        tmp["raw_labels"] = raw_label
-        df.append(tmp)
-    return pd.concat(df)
-
-
-def sample_data(data, how_many=None, replace=True):
-    """
-    Resample data based on raw_labels.
+def sample_data(
+    data: pd.DataFrame, how_many: Union[int, None] = None, replace: bool = True
+) -> pd.DataFrame:
+    """Resample data based on raw_labels.
 
     Args:
-        data (pd.DataFrame): Dataframe with raw_labels column
-        how_many (Union[int,None]): How many samples per class to take. If None, return
-            unchanged data.
-        replace (bool): Sample with/without replacement. Ignored if how_many is None. If
+        data: Dataframe with `raw_labels` column.
+        how_many: How many samples per class to take. If None, return unchanged data.
+        replace: Sample with/without replacement. Ignored if how_many is None. If
             False, take the min of the total number of samples and how_many.
 
     Returns:
-        pd.DataFrame: A new dataframe with the resampled rows
+        A new dataframe with the resampled rows.
     """
     if how_many is None:
         return data.copy()
@@ -113,7 +147,20 @@ def sample_data(data, how_many=None, replace=True):
     return data.groupby("raw_labels").apply(sampler).reset_index(drop=True)
 
 
-def _merge_columns(data, merge_columns, merge_sep):
+def _convert_to_dataframe(dataset: Dict) -> pd.DataFrame:
+    """Convert data dict to dataframe."""
+    df = []
+    for raw_label, l in dataset.items():
+        tmp = pd.DataFrame(l)
+        tmp["raw_labels"] = raw_label
+        df.append(tmp)
+    return pd.concat(df)
+
+
+def _merge_columns(
+    data: pd.DataFrame, merge_columns: List[str], merge_sep: str
+) -> pd.DataFrame:
+    """Create new column in dataframe by merging existing string columns."""
     data = data.copy()
     tmp = data[merge_columns[0]].copy()
     for k in merge_columns[1:]:
@@ -123,7 +170,13 @@ def _merge_columns(data, merge_columns, merge_sep):
     return data
 
 
-def _merge_categories(data, merge_categories):
+def _merge_categories(
+    data: pd.DataFrame, merge_categories: Dict[str, List[str]]
+) -> pd.DataFrame:
+    """
+    Merge categories in `raw_labels` according to merge_categories.
+    Store old categories in a new column `old_raw_labels`.
+    """
     data = data.copy()
     data["old_raw_labels"] = data["raw_labels"].copy()
 

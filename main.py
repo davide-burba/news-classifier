@@ -35,7 +35,7 @@ DEFAULT_CONFIG = {
     "cleaner_params": {"path_raw_dir": DEFAULT_OUTPUT_DIR["scrape_data"]},
     "formatter_class": "StandardFormatter",
     "formatter_params": {"path_raw_dir": DEFAULT_OUTPUT_DIR["clean_data"]},
-    "modeller_class": "BaseTextClassifier",
+    "modeller_class": "TextClassifier",
     "modeller_params": {"path_data_dir": DEFAULT_OUTPUT_DIR["format_data"]},
     "analyzer_class": "ClassificationAnalyzer",
     "analyzer_params": {"path_model": DEFAULT_OUTPUT_DIR["train"]},
@@ -48,14 +48,13 @@ def main(
     output_dir: Union[str, None] = None,
     run_name: Union[str, None] = None,
 ):
-    f"""
-    Run a task.
+    """Run a task.
 
     Args:
-        task_name (str): The name of the task. Available tasks are: {list(TASK_MAP.keys())}
-        config_path (str): Path to the yaml config file
-        output_dir (str): Path to the directory where the output of the task will be stored
-        run_name (Union[None,str]): Optional run name for mlflow
+        task_name: The name of the task. Available tasks are in TASK_MAP.
+        config_path: Path to the yaml config file.
+        output_dir: Path to the directory where the output of the task will be stored.
+        run_name: Optional run name for mlflow.
     """
     if task_name not in TASK_MAP:
         raise ValueError(f"Unknown task {task_name}")
