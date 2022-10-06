@@ -23,6 +23,10 @@ nbformat = "^5.4.0"
 
 [tool.poetry.dev-dependencies]
 
+[tool.poetry.group.dev.dependencies]
+pytest-lazy-fixture = "^0.6.3"
+black = {version = "^22.8.0", allow-prereleases = true}
+
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
