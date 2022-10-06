@@ -62,3 +62,11 @@ poetry run mlflow ui --backend-store-uri sqlite:///mlruns.db
 ### With AWS
 *Coming soon*
 
+
+## Test
+
+To execute the tests, run: 
+
+```bash
+poetry run pytest tests
+```
