@@ -10,7 +10,9 @@ The code is easily extensible and can be used as a template for other text class
 
 **With [poetry](https://python-poetry.org):** `poetry install`
 
-**With [docker](https://www.docker.com):** *Coming soon*
+**With [docker](https://www.docker.com):** `docker-compose up -d`
+
+To run a command with docker, preceed the commands described below with `docker-compose exec news_classifier`.
 
 ## Model training and evaluation
 
@@ -53,6 +55,8 @@ To see the mlflow UI you can run:
 ```bash
 poetry run mlflow ui --backend-store-uri sqlite:///mlruns.db
 ```
+
+With docker-compose, an mlflow service is already started and available on port 5000.
 
 ## Deployment
 
