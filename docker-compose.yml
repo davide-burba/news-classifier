@@ -1,0 +1,23 @@
+version: "3.8"
+
+services:
+
+  news_classifier:
+    build: .
+    volumes:
+      - code:/code
+      # mount config file
+      - "./config.yml:/code/config.yml"
+      # mount .git for tracking of git commits in mlflow
+      # "./.git:/code/.git"
+
+  mlflow:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      - code:/code
+    command: poetry run mlflow ui --host 0.0.0.0 --backend-store-uri sqlite:///mlruns.db
+
+volumes:
+  code:
