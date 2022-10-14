@@ -6,6 +6,16 @@ The project is used for both model training and deployment.
 
 The code is easily extensible and can be used as a template for other text classification tasks and beyond.
 
+**Table of Contents**
+- [Install the project](#install-the-project)
+- [Model training and evaluation](#model-training-and-evaluation)
+    - [Run a task](#run-a-task)
+    - [Logging](#logging)
+    - [Test](#test)
+- [Deployment](#deployment)
+    - [On a dedicated server](#on-a-dedicated-server)
+    - [Serverless (AWS)](#serverless-aws)
+
 ## Install the project
 
 **With [poetry](https://python-poetry.org):** `poetry install`
@@ -15,6 +25,8 @@ The code is easily extensible and can be used as a template for other text class
 To run a command with docker, preceed the commands described below with `docker-compose exec news_classifier`.
 
 ## Model training and evaluation
+
+### Run a task
 
 The entry-point for the project is the `main.py` file, which is used to execute tasks defined in `./news_classifier/tasks`. 
 
@@ -56,21 +68,36 @@ To see the mlflow UI you can run:
 poetry run mlflow ui --backend-store-uri sqlite:///mlruns.db
 ```
 
-With docker-compose, an mlflow service is already started and available on port 5000.
+With docker-compose, an mlflow service is already started and available on port 5000. 
+The port can be easily changed in the `docker-compose.yml` file.
 
-## Deployment
-
-### On a private server
-*Coming soon*
-
-### With AWS
-*Coming soon*
-
-
-## Test
+### Test
 
 To execute the tests, run: 
 
 ```bash
 poetry run pytest tests
 ```
+
+## Deployment
+
+There are two options to deploy the app for inference.
+
+### On a dedicated server
+
+Api exposing a `predict` method, built with [FastAPI](https://fastapi.tiangolo.com).
+
+Run the app with: 
+```bash
+poetry run uvicorn api.app:app --port <PORT>
+```
+
+Once turned on, you can try the api on `localhost:<PORT>/docs`.
+
+When using docker, a service for the api is started and is available on port `5001`.
+The port can be easily changed in the `docker-compose.yml` file.
+
+### Serverless (AWS)
+*Coming soon*
+
+
