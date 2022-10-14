@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 import pandas as pd
+import numpy as np
 import sys
 import os
 from typing import Dict, Union, Any
@@ -167,6 +168,34 @@ class TextClassifier:
         preds["predicted_scores"] = predicted_score
 
         return preds
+
+    def inference(self, text: str) -> Dict[str, Union[str, float, Dict[str, float]]]:
+        """Make inference from text.
+
+        Args:
+            text: Input text feature.
+
+        Returns:
+            A dict containing the predicted label, the predicted score, and the scores
+                for each category.
+        """
+
+        # make predictions
+        preds = self.inference_pipe(text)[0]
+
+        # format
+        labels = [
+            self.labels_tokenizer.labels_dict_inverse[int(d["label"].split("_")[1])]
+            for d in preds
+        ]
+        scores = [d["score"] for d in preds]
+        idx_max = np.argmax(scores)
+
+        return {
+            "predicted_category": labels[idx_max],
+            "score": scores[idx_max],
+            "all_scores": dict(zip(labels, scores)),
+        }
 
     def load_data(self, data="train"):
         """Load data from a folder.
