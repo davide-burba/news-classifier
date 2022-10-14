@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "news-classifier"
+name = "news_classifier"
 version = "0.1.0"
 description = ""
 authors = ["Davide Burba <davide.burba@hotmail.com>"]
@@ -20,6 +20,8 @@ plotly = "^5.10.0"
 fire = "^0.4.0"
 evaluate = "^0.2.2"
 nbformat = "^5.4.0"
+fastapi = "^0.85.0"
+uvicorn = "^0.18.3"
 
 [tool.poetry.dev-dependencies]
 

@@ -8,6 +8,7 @@ COPY poetry.lock /code/
 COPY pyproject.toml /code/
 COPY main.py /code/main.py
 COPY news_classifier /code/news_classifier
+COPY api /code/api
 COPY config.yml /code/config.yml
 
 WORKDIR /code
