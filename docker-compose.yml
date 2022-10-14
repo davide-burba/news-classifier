@@ -19,5 +19,13 @@ services:
       - code:/code
     command: poetry run mlflow ui --host 0.0.0.0 --backend-store-uri sqlite:///mlruns.db
 
+  api:
+    build: .
+    ports:
+      - "5001:5001"
+    volumes:
+      - code:/code
+    command: poetry run uvicorn api.app:app --port 5001 --host 0.0.0.0
+
 volumes:
   code:
