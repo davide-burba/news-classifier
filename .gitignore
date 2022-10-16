@@ -24,3 +24,9 @@ experiments
 mlruns
 mlruns.db
 cache
+
+# sam-app
+sam-app/.aws-sam
+sam-app/app/news_classifier
+sam-app/app/pyproject.toml
+sam-app/app/poetry.lock
