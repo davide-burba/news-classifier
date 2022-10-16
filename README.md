@@ -98,6 +98,24 @@ When using docker, a service for the api is started and is available on port `50
 The port can be easily changed in the `docker-compose.yml` file.
 
 ### Serverless (AWS)
-*Coming soon*
+
+Lambda paired with an implicit API, built with [AWS SAM](https://aws.amazon.com/serverless/sam/). 
+
+Code and model are enclosed in the container image. 
 
 
+To build the app, first copy `news_classifier`, `poetry.lock`, `pyproject.toml`, and the desired `model.p` in `sam-app/app`. This is needed to build the docker image for `sam`. Then run:
+
+```bash
+# move into sam-app folder
+cd sam-app
+# build the image
+sam build
+# test the app locally
+sam local start-api
+```
+
+To deploy the app on AWS, run:
+```bash
+sam deploy
+```
