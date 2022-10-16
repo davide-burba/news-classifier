@@ -44,7 +44,13 @@ The following tasks are defined:
 - `clean_data`: remove articles not scraped correctly
 - `format_data`: apply transformations and split in train/valid/test
 - `train`: train and validate a text classifier (with [huggingface](https://huggingface.co))
-- `evaluate`: evaluate the classifier
+    - The default model is a [distilled Bert Transformer](https://huggingface.co/distilbert-base-cased).
+    - During training, the following metrics are monitored: loss, accuracy, macro-precision/recall/f1.
+    - All the parameters of the model are logged with mlflow.
+- `evaluate`: evaluate the classifier on a dataset (the test set by default). It computes:
+    - confusion metrics
+    - global metrics: accuracy, macro-precision/recall/f1
+    - accuracy/precision/recall/f1 for each class.
 
 Each of the task can be configured via a `yaml` configuration file. You can check the code documentation to see how to configure it. A default one is provided in `config.yml`.
 
